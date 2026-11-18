@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b141a">
+<title>HAMID CHAT</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b141a;color:#e9edef;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input{font:inherit}
+button{border:0;cursor:pointer;color:inherit}
+.app{max-width:600px;margin:auto;height:100dvh;display:flex;flex-direction:column;background:#0b141a;overflow:hidden;position:relative}
+.header{height:65px;flex-shrink:0;background:#111b21;display:flex;align-items:center;justify-content:space-between;padding:0 17px}
+.brand{font-size:22px;font-weight:800;color:#00a884}
+.status{font-size:11px;color:#53d9ae}
+.page{flex:1;overflow-y:auto;display:none}
+.page.active{display:block}
+.page.active.flex{display:flex}
+.title{font-size:25px;font-weight:750;padding:18px}
+.search{margin:0 14px 15px;padding:12px;background:#202c33;border-radius:12px}
+.search input{width:100%;background:none;border:0;outline:none;color:white}
+.contact{display:flex;align-items:center;padding:14px;gap:13px;cursor:pointer;border-bottom:1px solid #26353d}
+.avatar{width:50px;height:50px;min-width:50px;border-radius:50%;background:#344d58;display:grid;place-items:center;font-size:24px}
+.contact-info{flex:1;min-width:0}
+.contact-name{font-weight:650;margin-bottom:5px}
+.preview{font-size:12px;color:#8696a0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.time{font-size:10px;color:#8696a0}
+.bottom{height:68px;flex-shrink:0;background:#111b21;border-top:1px solid #26353d;display:flex;justify-content:space-around;align-items:center}
+.nav{background:none;color:#8696a0;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.nav span{font-size:21px}
+.nav.active{color:#00a884}
+.floating{position:absolute;bottom:85px;right:20px;width:55px;height:55px;border-radius:17px;background:#00a884;font-size:24px;z-index:5}
+#conversation{display:none;position:absolute;inset:0;background:#0b141a;z-index:10;flex-direction:column}
+.chat-header{height:65px;flex-shrink:0;background:#202c33;display:flex;align-items:center;padding:8px;gap:10px}
+.back{background:none;font-size:28px;padding:5px}
+.chat-person{flex:1;min-width:0}
+.chat-person small{display:block;color:#53d9ae;font-size:11px;margin-top:3px}
+.chat-actions button{background:none;font-size:20px;padding:5px}
+.messages{flex:1;overflow-y:auto;padding:15px 12px;background-image:radial-gradient(#1c3038 .6px,transparent .6px);background-size:18px 18px}
+.day{text-align:center;font-size:11px;background:#18272e;color:#b4c0c5;width:fit-content;padding:7px 12px;margin:0 auto 17px;border-radius:8px}
+.message{max-width:85%;padding:9px 11px 6px;border-radius:10px;margin-bottom:9px;font-size:14px;overflow-wrap:anywhere;position:relative}
+.me{background:#005c4b;margin-left:auto;border-top-right-radius:2px}
+.other{background:#202c33;margin-right:auto;border-top-left-radius:2px}
+.message-name{font-size:11px;color:#53d9ae;font-weight:bold;margin-bottom:4px}
+.message-time{text-align:right;color:#a7b8b0;font-size:10px;margin-top:5px}
+.message audio{max-width:100%;width:220px;height:38px}
+.deleteBtn{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:#b83232;font-size:11px;display:none}
+.me:hover .deleteBtn{display:block}
+.composer{flex-shrink:0;background:#0b141a;padding:9px;display:flex;gap:7px;align-items:center;padding-bottom:max(9px,env(safe-area-inset-bottom))}
+.composer input{flex:1;min-width:0;background:#2a3942;border:0;border-radius:25px;padding:14px 16px;color:white;outline:none}
+.action{width:44px;height:44px;min-width:44px;border-radius:50%;background:#00a884;font-size:19px}
+.mic{background:#26353d}
+.mic.recording{background:#d33b3b;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.5}}
+.info{margin:15px;padding:16px;background:#111b21;border-radius:14px;color:#c7d1d5;font-size:13px;line-height:1.6}
+.profile{padding:18px;background:#111b21;margin:12px;border-radius:12px}
+.field{width:100%;padding:13px;background:#202c33;border:1px solid #34434b;border-radius:10px;color:white;outline:none;margin:7px 0 14px}
+.primary{background:#00a884;color:white;padding:14px;border-radius:10px;font-weight:bold;width:100%}
+.primary:disabled{opacity:.6}
+.muted{color:#8696a0;font-size:12px}
+.empty{text-align:center;padding:45px 15px;color:#8696a0;line-height:1.7}
+#toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#26353d;padding:12px 17px;border-radius:12px;font-size:13px;display:none;z-index:50;max-width:90%;text-align:center}
+@media(min-width:601px){.app{border-left:1px solid #26353d;border-right:1px solid #26353d}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+  <div class="brand">HAMID CHAT</div>
+  <div class="status" id="connection">● Déconnecté</div>
+</header>
+
+<section id="login" class="page active flex" style="padding:25px;flex-direction:column;justify-content:center">
+  <div style="text-align:center;margin-bottom:25px">
+    <div style="font-size:60px">💬</div>
+    <h1 style="font-size:30px">HAMID CHAT</h1>
+    <p class="muted">Connecte-toi avec tes amis</p>
+  </div>
+  <div class="profile">
+    <label class="muted">Ton pseudo</label>
+    <input id="pseudo" class="field" maxlength="30" placeholder="Ex : Hamid">
+    <label class="muted">Ton numéro de téléphone</label>
+    <input id="phone" class="field" type="tel" maxlength="20" placeholder="+235 66 00 00 00">
+    <button class="primary" id="loginBtn" onclick="entrer()">ENTRER DANS HAMID CHAT ➜</button>
+    <p class="muted" style="margin-top:13px;text-align:center">Ton numéro est une information de profil. Il n'est pas vérifié par SMS et n'est pas envoyé dans les messages.</p>
+  </div>
+</section>
+
+<section id="chatsPage" class="page">
+  <h1 class="title">Discussions</h1>
+  <div class="search"><input id="search" placeholder="🔍 Rechercher un contact..." oninput="renderMessagesList()"></div>
+  <div id="contactList">
+    <div class="contact" onclick="openPublicChat()">
+      <div class="avatar">🌍</div>
+      <div class="contact-info"><div class="contact-name">Groupe public</div><div class="preview">Discussion avec tous les utilisateurs</div></div>
+      <div class="time">Public</div>
+    </div>
+  </div>
+  <button class="floating" onclick="openPublicChat()">+</button>
+</section>
+
+<section id="actusPage" class="page">
+  <h1 class="title">Actus</h1>
+  <div class="empty">◉<br><br>Les statuts arriveront dans une prochaine version.</div>
+</section>
+
+<section id="communitiesPage" class="page">
+  <h1 class="title">Communautés</h1>
+  <div class="info">👥<br><br>Rassemble tes amis dans des communautés.<br>Cette fonctionnalité sera développée prochainement.</div>
+</section>
+
+<section id="callsPage" class="page">
+  <h1 class="title">Appels</h1>
+  <div class="empty">📞<br><br>Les appels audio et vidéo seront ajoutés avec WebRTC.</div>
+</section>
+
+<section id="settingsPage" class="page">
+  <h1 class="title">Paramètres</h1>
+  <div class="profile"><div style="font-size:40px">👤</div><h3 id="profileName">Utilisateur</h3><p id="profilePhone" class="muted"></p></div>
+  <div class="info"><strong>HAMID CHAT</strong><br>Version 1.2 - Final<br>Messagerie connectée avec Firebase.</div>
+  <div style="padding:15px"><button class="primary" onclick="modifierProfil()">Modifier mon profil</button><br><br><button class="primary" style="background:#b83232" onclick="quitter()">Se déconnecter</button></div>
+</section>
+
+<nav class="bottom" id="bottomNav" style="display:none">
+  <button class="nav active" onclick="showPage('chatsPage',this)"><span>💬</span>Discussions</button>
+  <button class="nav" onclick="showPage('actusPage',this)"><span>◉</span>Actus</button>
+  <button class="nav" onclick="showPage('communitiesPage',this)"><span>👥</span>Communautés</button>
+  <button class="nav" onclick="showPage('callsPage',this)"><span>📞</span>Appels</button>
+  <button class="nav" onclick="showPage('settingsPage',this)"><span>⚙️</span>Réglages</button>
+</nav>
+
+<div id="conversation">
+  <header class="chat-header">
+    <button class="back" onclick="closeChat()">‹</button>
+    <div class="avatar">🌍</div>
+    <div class="chat-person"><strong>Groupe public</strong><small id="chatStatus">Connexion...</small></div>
+    <div class="chat-actions"><button onclick="alert('Appels à connecter avec WebRTC')">📞</button><button onclick="alert('Appels vidéo à connecter avec WebRTC')">▣</button></div>
+  </header>
+  <div id="messages" class="messages"><div class="day">Aujourd'hui</div></div>
+  <div class="composer">
+    <input id="inputMsg" placeholder="Écris ton message..." maxlength="2000">
+    <button id="micBtn" class="action mic" onclick="toggleRecording()">🎙️</button>
+    <button class="action" onclick="envoyer()">➤</button>
+  </div>
+</div>
+<div id="toast"></div>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {getFirestore,collection,addDoc,deleteDoc,doc,onSnapshot,query,orderBy,limit,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {getStorage,ref,uploadBytes,getDownloadURL} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+/* ⚠️ METS TA VRAIE CONFIG ICI - NE LA PARTAGE PAS */
+const firebaseConfig = {
+ apiKey:"TON_API_KEY_ICI",
+ authDomain:"TON_PROJET.firebaseapp.com",
+ projectId:"TON_PROJET",
+ storageBucket:"TON_PROJET.firebasestorage.app",
+ messagingSenderId:"TON_SENDER_ID",
+ appId:"TON_APP_ID"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
+const storage=getStorage(app);
+
+let monPseudo="", monTelephone="", monUid=null, unsubscribe=null, recorder=null, audioChunks=[], recording=false, busy=false, lastSend=0;
+const $=id=>document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display="none",3500);}
+function setConnection(text,color){$("connection").textContent="● "+text;$("connection").style.color=color;}
+function afficherChat(){
+  document.querySelectorAll(".page").forEach(p=>{p.classList.remove("active");p.classList.remove("flex");});
+  $("chatsPage").classList.add("active");
+  $("bottomNav").style.display="flex";
+  $("profileName").textContent=monPseudo;
+  $("profilePhone").textContent=monTelephone;
+}
+window.entrer=async()=>{
+  const p=$("pseudo").value.trim();
+  const phone=$("phone").value.trim();
+  if(!p){toast("Écris ton pseudo.");return;}
+  if(p.length<2){toast("Le pseudo doit avoir au moins 2 caractères.");return;}
+  if(!phone){toast("Ajoute ton numéro de téléphone.");return;}
+  if(phone.replace(/\D/g,"").length<8){toast("Numéro trop court. Ex: +235 66 00 00 00");return;}
+  monPseudo=p; monTelephone=phone;
+  $("loginBtn").disabled=true; $("loginBtn").textContent="Connexion...";
+  try{
+    const credential=await signInAnonymously(auth);
+    monUid=credential.user.uid;
+    localStorage.setItem("hamid_pseudo",p); localStorage.setItem("hamid_phone",phone);
+    afficherChat(); setConnection("Connecté","#53d9ae"); ecouter();
+  }catch(e){console.error(e);toast("Connexion impossible : "+e.message);}
+  finally{$("loginBtn").disabled=false;$("loginBtn").textContent="ENTRER DANS HAMID CHAT ➜";}
+};
+function ecouter(){
+  if(unsubscribe)unsubscribe();
+  // CORRIGÉ : seulement les 50 derniers, du plus vieux au plus récent
+  const q=query(collection(db,"messages"),orderBy("time","desc"),limit(50));
+  unsubscribe=onSnapshot(q,snapshot=>{
+    const box=$("messages"); box.innerHTML="";
+    const day=document.createElement("div"); day.className="day"; day.textContent="Aujourd'hui"; box.appendChild(day);
+    const docs=[...snapshot.docs].reverse();
+    docs.forEach(d=>afficherMessage(box,d.id,d.data()));
+    box.scrollTop=box.scrollHeight;
+    $("chatStatus").textContent="● Connecté à Firebase";
+    setConnection("En ligne","#53d9ae");
+  },error=>{console.error(error);$("chatStatus").textContent="Erreur de connexion";setConnection("Erreur","#ff7777");toast("Impossible de charger les messages.");});
+}
+function afficherMessage(box,id,m){
+  const moi=m.uid===monUid;
+  const wrapper=document.createElement("div"); wrapper.className="message "+(moi?"me":"other");
+  if(!moi){const name=document.createElement("div");name.className="message-name";name.textContent=m.pseudo||"Utilisateur";wrapper.appendChild(name);}
+  if(m.type==="audio" && m.audioUrl){const audio=document.createElement("audio");audio.controls=true;audio.preload="none";audio.src=m.audioUrl;wrapper.appendChild(audio);}
+  else{const text=document.createElement("div");text.textContent=m.texte||"";wrapper.appendChild(text);}
+  const time=document.createElement("div");time.className="message-time";
+  let date=m.time?.toDate?m.time.toDate():new Date();
+  time.textContent=date.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  wrapper.appendChild(time);
+  if(moi){
+    const del=document.createElement("button");del.className="deleteBtn";del.textContent="✕";
+    del.onclick=async()=>{if(confirm("Supprimer ce message ?")){try{await deleteDoc(doc(db,"messages",id));}catch(e){toast("Impossible de supprimer.");}}};
+    wrapper.appendChild(del);
+  }
+  box.appendChild(wrapper);
+}
+window.envoyer=async()=>{
+  const input=$("inputMsg"); const texte=input.value.trim();
+  if(!texte)return; if(!monUid){toast("Connecte-toi d'abord.");return;} if(busy)return;
+  const now=Date.now(); if(now-lastSend<1000){toast("Attends 1 seconde...");return;} lastSend=now;
+  busy=true;
+  try{
+    // CORRIGÉ : plus de téléphone dans le message
+    await addDoc(collection(db,"messages"),{uid:monUid,pseudo:monPseudo,texte:texte,type:"text",time:serverTimestamp()});
+    input.value="";
+  }catch(e){console.error(e);toast("Erreur d'envoi. Vérifie ta connexion.");}
+  finally{busy=false;}
+};
+$("inputMsg").addEventListener("keydown",e=>{if(e.key==="Enter" && !e.shiftKey){e.preventDefault();window.envoyer();}});
+window.openPublicChat=()=>{$("conversation").style.display="flex";$("inputMsg").focus();};
+window.closeChat=()=>{$("conversation").style.display="none";};
+window.showPage=(id,button)=>{
+  document.querySelectorAll(".page").forEach(p=>{p.classList.remove("active");p.classList.remove("flex");});
+  const page=$(id); page.classList.add("active"); if(id==="login")page.classList.add("flex");
+  document.querySelectorAll(".nav").forEach(b=>b.classList.remove("active")); button.classList.add("active");
+};
+window.renderMessagesList=()=>{
+  const search=$("search").value.toLowerCase(); const list=$("contactList"); list.innerHTML="";
+  if("groupe public".includes(search)){
+    const item=document.createElement("div"); item.className="contact";
+    item.innerHTML='<div class="avatar">🌍</div><div class="contact-info"><div class="contact-name">Groupe public</div><div class="preview">Discussion publique</div></div>';
+    item.onclick=window.openPublicChat; list.appendChild(item);
+  }
+};
+window.modifierProfil=()=>{
+  const p=prompt("Ton pseudo :",monPseudo);
+  if(p&&p.trim()){monPseudo=p.trim();localStorage.setItem("hamid_pseudo",monPseudo);$("profileName").textContent=monPseudo;toast("Pseudo modifié. Les prochains messages utiliseront ce nom.");}
+};
+window.quitter=()=>{
+  if(unsubscribe)unsubscribe(); unsubscribe=null;
+  auth.signOut().catch(console.error);
+  monUid=null; monPseudo=""; monTelephone="";
+  $("conversation").style.display="none"; $("bottomNav").style.display="none";
+  document.querySelectorAll(".page").forEach(p=>{p.classList.remove("active");p.classList.remove("flex");});
+  $("login").classList.add("active"); $("login").classList.add("flex");
+  setConnection("Déconnecté","#8696a0");
+};
+window.toggleRecording=async()=>{
+  if(!monUid){toast("Connecte-toi d'abord.");return;}
+  if(recording){recorder.stop();return;}
+  if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){toast("Enregistrement vocal non disponible sur ce navigateur.");return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks=[]; let options={};
+    if(MediaRecorder.isTypeSupported("audio/webm;codecs=opus"))options.mimeType="audio/webm;codecs=opus";
+    else if(MediaRecorder.isTypeSupported("audio/mp4"))options.mimeType="audio/mp4";
+    recorder=new MediaRecorder(stream,options);
+    recorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
+    recorder.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop()); recording=false;
+      $("micBtn").classList.remove("recording"); $("micBtn").textContent="🎙️";
+      const blob=new Blob(audioChunks,{type:recorder.mimeType||"audio/webm"});
+      if(blob.size===0){toast("Aucun son enregistré.");return;}
+      if(blob.size>10*1024*1024){toast("Vocal trop volumineux. Maximum 10 Mo.");return;}
+      toast("Envoi du vocal...");
+      try{
+        const extension=blob.type.includes("mp4")?"mp4":"webm";
+        const fileRef=ref(storage,"vocaux/"+monUid+"/"+Date.now()+"."+extension);
+        await uploadBytes(fileRef,blob,{contentType:blob.type});
+        const url=await getDownloadURL(fileRef);
+        await addDoc(collection(db,"messages"),{uid:monUid,pseudo:monPseudo,type:"audio",audioUrl:url,texte:"Message vocal",time:serverTimestamp()});
+        toast("Message vocal envoyé !");
+      }catch(e){console.error(e);toast("Erreur pendant l'envoi du vocal.");}
+    };
+    recorder.start(); recording=true;
+    $("micBtn").classList.add("recording"); $("micBtn").textContent="■";
+    toast("Enregistrement en cours. Appuie sur ■ pour terminer.");
+  }catch(e){console.error(e);toast("Autorise l'accès au microphone.");}
+};
+const savedPseudo=localStorage.getItem("hamid_pseudo");
+const savedPhone=localStorage.getItem("hamid_phone");
+if(savedPseudo)$("pseudo").value=savedPseudo;
+if(savedPhone)$("phone").value=savedPhone;
+onAuthStateChanged(auth,user=>{
+  if(user && savedPseudo && savedPhone && !monUid){
+    monUid=user.uid; monPseudo=savedPseudo; monTelephone=savedPhone;
+    afficherChat(); setConnection("En ligne","#53d9ae"); ecouter();
+  }
+});
+</script>
+</body>
+</html>
